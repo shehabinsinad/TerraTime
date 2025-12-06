@@ -1,0 +1,5 @@
+venv/
+__pycache__/
+*.pyc
+terrtime_timelapse.gif
+.DS_Store
