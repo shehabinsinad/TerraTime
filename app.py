@@ -57,15 +57,15 @@ def initialize_earth_engine():
     Initialize Earth Engine using geemap.ee_initialize().
     """
     try:
-        geemap_core.ee_initialize()
+        # Initialize with your Google Cloud project
+        ee.Initialize(project='terratime-autocomplete')
     except Exception as e:
         st.error(
             "Could not initialize Google Earth Engine.\n\n"
-            "Make sure you have authenticated already:\n"
-            "1) In a Python shell: `import ee; ee.Authenticate(); ee.Initialize()`\n"
-            "   OR\n"
-            "2) In a terminal: `earthengine authenticate`\n\n"
-            f"Raw error: {e}"
+            "**Setup needed:**\n"
+            "1. Visit https://code.earthengine.google.com/\n"
+            "2. Sign in and create/select a cloud project\n\n"
+            f"Error: {e}"
         )
         st.stop()
 
@@ -80,7 +80,7 @@ def get_osm_suggestions(query: str, max_results: int = 5):
     if not query or len(query.strip()) < 3:
         return []
 
-    geolocator = Nominatim(user_agent="terrra_time_app_suggestions")
+    geolocator = Nominatim(user_agent="terra_time_app_suggestions")
     try:
         results = geolocator.geocode(
             query,
@@ -100,7 +100,7 @@ def geocode_location(address: str):
     """
     Geocode a text address into (latitude, longitude) using OSM Nominatim.
     """
-    geolocator = Nominatim(user_agent="terrra_time_app_geocode")
+    geolocator = Nominatim(user_agent="terra_time_app_geocode")
     try:
         location = geolocator.geocode(address)
     except (GeocoderTimedOut, GeocoderServiceError):
@@ -410,7 +410,7 @@ def render_sidebar(persona: str):
                 "Analysis radius (km)",
                 min_value=1,
                 max_value=50,
-                value=10,
+                value=5,  # Reduced from 10 for faster loading
                 help="Larger radius = more area and more pixels in the analysis.",
             )
             show_health = st.checkbox(
@@ -666,9 +666,11 @@ def app_screen(persona: str):
         else:
             pct_change = 0.0
 
+        # OPTIMIZATION: Skip time series to load faster (2-5 min -> < 30 sec)
+        # Uncomment below to enable NDVI trend chart (will be slow)
         ndvi_years, ndvi_values = ([], [])
-        if persona in ("scientist", "student"):
-            ndvi_years, ndvi_values = compute_ndvi_series(roi, 2014, 2024)
+        # if persona in ("scientist", "student"):
+        #     ndvi_years, ndvi_values = compute_ndvi_series(roi, 2014, 2024)
 
         Map = geemap.Map(center=[lat, lon], zoom=10)
         Map.add_basemap("SATELLITE")
@@ -719,7 +721,10 @@ def app_screen(persona: str):
 
         Map.centerObject(roi, 10)
 
-        gif_path = create_timelapse_gif(roi, out_gif="terrtime_timelapse.gif")
+        # OPTIMIZATION: Skip GIF generation (very slow + not working reliably)
+        # Uncomment below to enable timelapse GIF (adds 1-2 minutes)
+        gif_path = None
+        # gif_path = create_timelapse_gif(roi, out_gif="terrtime_timelapse.gif")
 
     st.subheader("Map & Health Overlay")
     Map.to_streamlit(height=600)
